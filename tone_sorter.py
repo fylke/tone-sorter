@@ -17,7 +17,7 @@
 .. moduleauthor:: Magnus Falk <magnus.falk@gmail.com>
 """
 
-import sys, ucsv, getopt, os
+import sys, ucsv, getopt, os, re
 from operator import itemgetter
 
 def calc_sort_value(reversed_phrase, multiplicator, sort_value):
@@ -29,14 +29,20 @@ def calc_sort_value(reversed_phrase, multiplicator, sort_value):
                                     sort_value + tone * multiplicator)
 
 def extract_tone(syllable_with_tone):
-    tone = int(syllable_with_tone[-1])
-    syllable = syllable_with_tone[:-1]
+    if syllable_with_tone[-1].isdigit():
+        tone = int(syllable_with_tone[-1])
+        syllable = syllable_with_tone[:-1]
+    else:
+        tone = 5 # If no tone is given, we assume tone-less
+        syllable = syllable_with_tone
     return (syllable, tone)
 
 def annotate_phrase(phrase):
     if not phrase:
         raise ValueError
-    syllables = phrase.split(" ")
+    # The input can look either like "Bei3 jing1" or like "Bei3jing1", this
+    # takes care of both cases.
+    syllables = re.findall('([a-zA-Z]+[1-5]?)', phrase)
     return [extract_tone(syllable) for syllable in syllables]
 
 def sanitize_file(original_file):
