@@ -66,7 +66,7 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv, 'hi:o:', ['ifile=','ofile='])
     except getopt.GetoptError:
-        print 'test.py -i <inputfile> -o <outputfile>'
+        print 'tone_sorter.py -i <inputfile> -o <outputfile>'
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
@@ -76,8 +76,12 @@ def main(argv):
             inputfile = arg
         elif opt in ('-o', '--ofile'):
             outputfile = arg
+    if inputfile == "" or outputfile == "":
+        print 'tone_sorter.py -i <inputfile> -o <outputfile>'
+        sys.exit(2)
 
     phrases = []
+    cleaned_file = ""
     try:
         cleaned_file = sanitize_file(inputfile)
         line_number = 1
