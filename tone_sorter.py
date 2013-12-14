@@ -22,6 +22,7 @@ from operator import itemgetter
 
 def calc_sort_value(reversed_phrase, multiplicator, sort_value):
     if not reversed_phrase:
+        #print "sort value ", sort_value
         return sort_value
     else:
         (_syllable, tone), tail = reversed_phrase[0], reversed_phrase[1:]
@@ -42,7 +43,12 @@ def annotate_phrase(phrase):
         raise ValueError
     # The input can look either like "Bei3 jing1" or like "Bei3jing1", this
     # takes care of both cases.
-    syllables = re.findall('([a-zA-Z]+[1-5]?)', phrase)
+    syllables = re.findall("([a-züA-Z]+[1-5]?)", phrase, re.UNICODE)
+    if not syllables:
+        raise ValueError
+    elif (syllables[-1] == 'r') or (syllables[-1] == 'er'):
+        syllables = syllables[0:-1]
+    #print "syllables: ", syllables
     return [extract_tone(syllable) for syllable in syllables]
 
 def sanitize_file(original_file):
@@ -67,7 +73,7 @@ def parse_input(argv):
     inputfile = ""
     outputfile = ""
     try:
-        opts, args = getopt.getopt(argv, 'hi:o:', ['ifile=','ofile='])
+        opts, args = getopt.getopt(argv, 'hi:o:', ['inputfile=','outputfile='])
     except getopt.GetoptError:
         print_help()
         sys.exit(2)
@@ -75,9 +81,9 @@ def parse_input(argv):
         if opt == '-h':
             print_help()
             sys.exit()
-        elif opt in ('-i', '--ifile'):
+        elif opt in ('-i', '--inputfile'):
             inputfile = arg
-        elif opt in ('-o', '--ofile'):
+        elif opt in ('-o', '--outputfile'):
             outputfile = arg
     if inputfile == "" or outputfile == "":
         print_help()
@@ -112,7 +118,7 @@ def main(argv):
     except IOError:
         if cleaned_file.endswith("sanitized.csv"):
             os.remove(cleaned_file)
-        print "Bad input file:", inputfile 
+        print "Bad input file: ", inputfile 
 
     sorted_phrases = sorted(phrases, key = itemgetter(0, 1))
 
@@ -120,6 +126,7 @@ def main(argv):
     
     with open(outputfile, 'wb') as f:
         writer = ucsv.writer(f)
+        writer.writerow(["Word", "Pronunciation"])
         writer.writerows(output_ready_phrases)
 
 if __name__ == "__main__":
