@@ -17,12 +17,11 @@
 .. moduleauthor:: Magnus Falk <magnus.falk@gmail.com>
 """
 
-import sys, ucsv, getopt, os, re
+import sys, ucsv, getopt, os, re, codecs
 from operator import itemgetter
 
 def calc_sort_value(reversed_phrase, multiplicator, sort_value):
     if not reversed_phrase:
-        #print "sort value ", sort_value
         return sort_value
     else:
         (_syllable, tone), tail = reversed_phrase[0], reversed_phrase[1:]
@@ -43,7 +42,7 @@ def annotate_phrase(phrase):
         raise ValueError
     # The input can look either like "Bei3 jing1" or like "Bei3jing1", this
     # takes care of both cases.
-    syllables = re.findall("([a-züA-Z]+[1-5]?)", phrase, re.UNICODE)
+    syllables = re.findall(u'([a-züA-Z]+[1-5]?)', phrase, re.UNICODE)
     if not syllables:
         raise ValueError
     elif (syllables[-1] == 'r') or (syllables[-1] == 'er'):
@@ -52,13 +51,13 @@ def annotate_phrase(phrase):
     return [extract_tone(syllable) for syllable in syllables]
 
 def sanitize_file(original_file):
-    with open(original_file, 'r') as f:
+    with codecs.open(original_file, encoding='utf-8', mode='r') as f:
         lines = f.readlines()
         # The lists from Lingomi have an improper first line that needs to go
         if lines[0].startswith("http://lingomi.com"):
             del lines[0]
             clean_file = original_file + "_sanitized.csv"
-            out = open(clean_file, 'w')
+            out = codecs.open(clean_file, encoding='utf-8', mode='w')
             out.writelines(lines)
             out.close()
             return clean_file
@@ -70,8 +69,8 @@ def print_help():
     print "tone_sorter.py -i <inputfile> -o <outputfile>"
 
 def parse_input(argv):
-    inputfile = ""
-    outputfile = ""
+    inputfile = ''
+    outputfile = ''
     try:
         opts, args = getopt.getopt(argv, 'hi:o:', ['inputfile=','outputfile='])
     except getopt.GetoptError:
@@ -85,7 +84,7 @@ def parse_input(argv):
             inputfile = arg
         elif opt in ('-o', '--outputfile'):
             outputfile = arg
-    if inputfile == "" or outputfile == "":
+    if inputfile == '' or outputfile == '':
         print_help()
         sys.exit(2)
     return (inputfile, outputfile)
@@ -94,31 +93,32 @@ def main(argv):
     (inputfile, outputfile) = parse_input(argv)
 
     phrases = []
-    cleaned_file = ""
+    cleaned_file = ''
     try:
         cleaned_file = sanitize_file(inputfile)
         line_number = 1
+        # Here we don't need the codecs.open as we use ucsv to read the file
         with open(cleaned_file, 'rb') as csvfile:
             for row in ucsv.DictReader(csvfile):
                 line_number += 1
-                pinyin_phrase = row["Pronunciation"]
+                pinyin_phrase = row['Pronunciation']
                 try:
                     annotated_pinyin = annotate_phrase(pinyin_phrase)
                 except ValueError:
-                    print "Bad pronunciation entry on line %d. " % line_number
+                    print "There's a fishy pronunciation entry on line %d." % line_number
                     continue
                 sort_value = calc_sort_value(annotated_pinyin[::-1], 1, 0)
                 (first_syllable, _tone) = annotated_pinyin[0]
 
-                hanzi_phrase = row["Word"]
+                hanzi_phrase = row['Word']
                 phrases.append((sort_value, first_syllable,
                                 hanzi_phrase, pinyin_phrase))
-        if cleaned_file.endswith("sanitized.csv"):
+        if cleaned_file.endswith('sanitized.csv'):
             os.remove(cleaned_file)
     except IOError:
-        if cleaned_file.endswith("sanitized.csv"):
+        if cleaned_file.endswith('sanitized.csv'):
             os.remove(cleaned_file)
-        print "Bad input file: ", inputfile 
+        print 'Bad input file: ', inputfile 
 
     sorted_phrases = sorted(phrases, key = itemgetter(0, 1))
 
@@ -126,8 +126,8 @@ def main(argv):
     
     with open(outputfile, 'wb') as f:
         writer = ucsv.writer(f)
-        writer.writerow(["Word", "Pronunciation"])
+        writer.writerow(['Word', 'Pronunciation'])
         writer.writerows(output_ready_phrases)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
    main(sys.argv[1:])
